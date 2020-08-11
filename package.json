@@ -6,7 +6,7 @@
     "start": "node ./bin/www",
     "build": "tsc",
     "clean": "rm -rf build",
-    "fmt": "prettier --write \"src/**/*.ts\" package.json .eslintrc.js",
+    "fmt": "prettier --write \"src/**/*.ts\" package.json .eslintrc.js knexfile.ts",
     "lint": "eslint -c .eslintrc.js \"src/**/*.ts\"",
     "watch-ts": "tsc -w",
     "watch-node": "nodemon ./bin/www",
@@ -18,7 +18,9 @@
     "express": "~4.16.1",
     "http-errors": "~1.6.3",
     "jade": "~1.11.0",
-    "morgan": "~1.9.1"
+    "knex": "^0.21.3",
+    "morgan": "~1.9.1",
+    "sqlite3": "^5.0.0"
   },
   "devDependencies": {
     "@types/cookie-parser": "^1.4.2",
@@ -31,6 +33,7 @@
     "eslint": "^7.6.0",
     "nodemon": "^2.0.4",
     "prettier": "^2.0.5",
+    "ts-node": "^8.10.2",
     "typescript": "^3.9.7"
   }
 }
