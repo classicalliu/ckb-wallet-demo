@@ -13,6 +13,16 @@ module.exports = {
     useNullAsDefault: true,
   },
 
+  test: {
+    client: "sqlite3",
+    connection: ":memory:",
+    migrations: {
+      directory: __dirname + "/src/db/migrations",
+      extension: "ts",
+    },
+    useNullAsDefault: true,
+  },
+
   staging: {
     client: "sqlite3",
     connection: {
