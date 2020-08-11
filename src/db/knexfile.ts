@@ -4,10 +4,10 @@ module.exports = {
   development: {
     client: "sqlite3",
     connection: {
-      filename: "./dev.sqlite3",
+      filename: __dirname + "/../../dev.sqlite3",
     },
     migrations: {
-      directory: __dirname + "/src/db/migrations",
+      directory: __dirname + "/migrations",
       extension: "ts",
     },
     useNullAsDefault: true,
@@ -17,7 +17,7 @@ module.exports = {
     client: "sqlite3",
     connection: ":memory:",
     migrations: {
-      directory: __dirname + "/src/db/migrations",
+      directory: __dirname + "/migrations",
       extension: "ts",
     },
     useNullAsDefault: true,
@@ -26,7 +26,7 @@ module.exports = {
   staging: {
     client: "sqlite3",
     connection: {
-      filename: "./staging.sqlite3",
+      filename: __dirname + "/../../staging.sqlite3",
     },
     pool: {
       min: 2,
@@ -34,7 +34,7 @@ module.exports = {
     },
     migrations: {
       tableName: "knex_migrations",
-      directory: __dirname + "/src/db/migrations",
+      directory: __dirname + "/migrations",
       extension: "ts",
     },
     useNullAsDefault: true,
@@ -43,7 +43,7 @@ module.exports = {
   production: {
     client: "sqlite3",
     connection: {
-      filename: "./prod.sqlite3",
+      filename: __dirname + "/../../prod.sqlite3",
     },
     pool: {
       min: 2,
@@ -51,7 +51,7 @@ module.exports = {
     },
     migrations: {
       tableName: "knex_migrations",
-      directory: __dirname + "/src/db/migrations",
+      directory: __dirname + "/migrations",
       extension: "ts",
     },
     useNullAsDefault: true,
