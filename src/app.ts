@@ -11,6 +11,7 @@ import { JWT_SECRET_KEY } from "./models/account";
 import indexRouter from "./routes/index";
 import usersRouter from "./routes/users";
 import accountsRouter from "./routes/accounts";
+import addressesRouter from "./routes/addresses";
 
 let app = express();
 
@@ -37,6 +38,7 @@ app.use(
 app.use("/", indexRouter);
 app.use("/users", usersRouter);
 app.use("/accounts", accountsRouter);
+app.use("/addresses", addressesRouter);
 
 // catch 404 and forward to error handler
 app.use((_req, _res, next) => {

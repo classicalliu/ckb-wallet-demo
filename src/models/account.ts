@@ -2,6 +2,7 @@ import bcrypt from "bcrypt";
 import Knex from "knex";
 import jsonWebToken from "jsonwebtoken";
 import { defaultConnection } from "../db/connection";
+import Address, { AddressEntity } from "./address";
 
 // TODO: update this
 export const JWT_SECRET_KEY = "secret";
@@ -27,8 +28,45 @@ export default class Account {
       username: username,
       password_digest: digest,
     };
-    await this.knex("accounts").insert(entity);
+
+    const address = new Address();
+    const addressEntity: AddressEntity = address.generate();
+    await this.knex.transaction(async (trx) => {
+      const accountId: number = await trx("accounts")
+        .insert(entity)
+        .returning("id");
+      addressEntity.account_id = accountId;
+      await trx("addresses").insert(addressEntity);
+    });
+
     return entity;
+  }
+
+  async generateNewAddress(accountId: number): Promise<AddressEntity> {
+    const address = new Address();
+    const addressEntity: AddressEntity = address.generate();
+    addressEntity.account_id = accountId;
+
+    await this.knex("addresses").insert(addressEntity);
+
+    return addressEntity;
+  }
+
+  async getCurrentAddress(accountId: number): Promise<AddressEntity> {
+    const addressEntities: AddressEntity[] = await this.knex
+      .select()
+      .from("addresses")
+      .where({
+        account_id: accountId,
+      })
+      .orderBy("id", "desc");
+    const currentAddressEntity: AddressEntity | undefined = addressEntities[0];
+
+    if (!currentAddressEntity) {
+      return this.generateNewAddress(accountId);
+    }
+
+    return currentAddressEntity;
   }
 
   private async encryptPassword(password: string): Promise<string> {
@@ -53,7 +91,7 @@ export default class Account {
       },
       JWT_SECRET_KEY,
       {
-        expiresIn: "1h",
+        expiresIn: "24h",
       }
     );
   }

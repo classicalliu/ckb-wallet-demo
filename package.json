@@ -17,6 +17,10 @@
     "knex:migrate:rollback": "knex --knexfile src/db/knexfile.ts migrate:rollback"
   },
   "dependencies": {
+    "@ckb-lumos/base": "^0.8.0",
+    "@ckb-lumos/config-manager": "^0.8.0",
+    "@ckb-lumos/helpers": "^0.8.0",
+    "@nervosnetwork/ckb-sdk-utils": "^0.34.0",
     "bcrypt": "^5.0.0",
     "body-parser": "^1.19.0",
     "cookie-parser": "~1.4.4",
