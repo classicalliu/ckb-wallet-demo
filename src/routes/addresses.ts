@@ -4,7 +4,7 @@ import { getAccountId } from "./helpers";
 const router = express.Router();
 
 router.post("/", async (req, res) => {
-  const accountId: number = getAccountId(req);
+  const accountId: number = getAccountId(req, res);
 
   const account = new Account();
   const addressEntity = await account.generateNewAddress(accountId);
@@ -13,12 +13,12 @@ router.post("/", async (req, res) => {
 });
 
 router.get("/", async (req, res) => {
-  const accountId: number = getAccountId(req);
+  const accountId: number = getAccountId(req, res);
 
   const account = new Account();
-  const addressEntity = await account.getCurrentAddress(accountId);
+  const result = await account.getCurrentAddress(accountId);
 
-  res.json(addressEntity);
+  res.json(result);
 });
 
 export default router;

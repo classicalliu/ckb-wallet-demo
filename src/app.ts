@@ -1,3 +1,11 @@
+import { initializeConfig } from "@ckb-lumos/config-manager";
+
+// setup lumos config
+// TODO: refactor these env vars
+process.env.LUMOS_CONFIG_NAME = "DEV";
+process.env.LUMOS_CONFIG_FILE = __dirname + "/../dev_config.json";
+initializeConfig();
+
 import createError from "http-errors";
 import express from "express";
 import path from "path";
@@ -12,6 +20,8 @@ import indexRouter from "./routes/index";
 import usersRouter from "./routes/users";
 import accountsRouter from "./routes/accounts";
 import addressesRouter from "./routes/addresses";
+import withdrawRouter from "./routes/withdraw";
+import { init } from "./models/init";
 
 let app = express();
 
@@ -39,6 +49,7 @@ app.use("/", indexRouter);
 app.use("/users", usersRouter);
 app.use("/accounts", accountsRouter);
 app.use("/addresses", addressesRouter);
+app.use("/withdraw", withdrawRouter);
 
 // catch 404 and forward to error handler
 app.use((_req, _res, next) => {
@@ -56,5 +67,7 @@ app.use((err: any, req: any, res: any, _next: any) => {
   // res.render("error");
   res.json(err);
 });
+
+init();
 
 export default app;

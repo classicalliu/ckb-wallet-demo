@@ -1,4 +1,5 @@
 import express from "express";
+import { getAccountId } from "./helpers";
 let router = express.Router();
 
 /* GET users listing. */
@@ -8,6 +9,7 @@ router.get("/", (_req, res, _next) => {
     one: 1,
     two: 2,
     three: 3,
+    account_id: getAccountId(_req, res),
   });
 });
 

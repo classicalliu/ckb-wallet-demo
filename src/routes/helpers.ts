@@ -1,3 +1,3 @@
-export function getAccountId(req: any): number {
+export function getAccountId(req: any, _res: any): number {
   return req.user.accountId;
 }

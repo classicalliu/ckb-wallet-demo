@@ -32,9 +32,11 @@ export default class Account {
     const address = new Address();
     const addressEntity: AddressEntity = address.generate();
     await this.knex.transaction(async (trx) => {
-      const accountId: number = await trx("accounts")
+      const accountIds: number[] = await trx("accounts")
         .insert(entity)
         .returning("id");
+      const accountId: number = accountIds[0];
+      entity.id = accountId;
       addressEntity.account_id = accountId;
       await trx("addresses").insert(addressEntity);
     });
@@ -52,7 +54,13 @@ export default class Account {
     return addressEntity;
   }
 
-  async getCurrentAddress(accountId: number): Promise<AddressEntity> {
+  async getCurrentAddress(
+    accountId: number
+  ): Promise<
+    AddressEntity & {
+      secp_address: string;
+    }
+  > {
     const addressEntities: AddressEntity[] = await this.knex
       .select()
       .from("addresses")
@@ -60,13 +68,16 @@ export default class Account {
         account_id: accountId,
       })
       .orderBy("id", "desc");
-    const currentAddressEntity: AddressEntity | undefined = addressEntities[0];
+    let currentAddressEntity: AddressEntity | undefined = addressEntities[0];
 
     if (!currentAddressEntity) {
-      return this.generateNewAddress(accountId);
+      currentAddressEntity = await this.generateNewAddress(accountId);
     }
 
-    return currentAddressEntity;
+    return {
+      ...currentAddressEntity,
+      secp_address: Address.generateSecpAddress(currentAddressEntity.blake160),
+    };
   }
 
   private async encryptPassword(password: string): Promise<string> {

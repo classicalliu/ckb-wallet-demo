@@ -2,6 +2,7 @@ import { Key } from "./key";
 import { blake160 as Blake160 } from "@nervosnetwork/ckb-sdk-utils";
 import { Script } from "@ckb-lumos/base";
 import { generateAddress, parseAddress } from "@ckb-lumos/helpers";
+import { getConfig } from "@ckb-lumos/config-manager";
 
 /**
  * NOTE: Do not save private_key directly to database in production.
@@ -45,6 +46,22 @@ export class Address {
 
   addressToScript(address: string): Script {
     return parseAddress(address);
+  }
+
+  static generateSecpScript(args: string): Script {
+    const secpTempalte = getConfig().SCRIPTS.SECP256K1_BLAKE160!;
+
+    const script: Script = {
+      code_hash: secpTempalte.CODE_HASH,
+      hash_type: secpTempalte.HASH_TYPE,
+      args,
+    };
+
+    return script;
+  }
+
+  static generateSecpAddress(args: string): string {
+    return generateAddress(this.generateSecpScript(args));
   }
 }
 
