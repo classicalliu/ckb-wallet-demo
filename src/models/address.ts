@@ -60,8 +60,45 @@ export class Address {
     return script;
   }
 
+  static generateMultisigScript(args: string): Script {
+    const multisigTemplate = getConfig().SCRIPTS.SECP256K1_BLAKE160_MUTLISIG!;
+    const script: Script = {
+      code_hash: multisigTemplate.CODE_HASH,
+      hash_type: multisigTemplate.HASH_TYPE,
+      args,
+    };
+
+    return script;
+  }
+
+  static generateAcpScript(args: string): Script {
+    const template = getConfig().SCRIPTS.ANYONE_CAN_PAY!;
+    const script: Script = {
+      code_hash: template.CODE_HASH,
+      hash_type: template.HASH_TYPE,
+      args,
+    };
+    return script;
+  }
+
   static generateSecpAddress(args: string): string {
     return generateAddress(this.generateSecpScript(args));
+  }
+
+  static generateMultisigAddress(args: string): string {
+    return generateAddress(this.generateMultisigScript(args));
+  }
+
+  static generateAcpAddress(args: string): string {
+    return generateAddress(this.generateAcpScript(args));
+  }
+
+  static generateAllAddresses(args: string): string[] {
+    return [
+      this.generateSecpAddress(args),
+      this.generateMultisigAddress(args),
+      this.generateAcpAddress(args),
+    ];
   }
 }
 

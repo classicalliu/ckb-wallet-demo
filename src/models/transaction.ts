@@ -3,12 +3,14 @@ import {
   Script,
   Cell,
   Transaction as TransactionInterface,
+  Header,
 } from "@ckb-lumos/base";
 import {
   parseAddress,
   TransactionSkeleton,
   sealTransaction,
   TransactionSkeletonType,
+  generateAddress,
 } from "@ckb-lumos/helpers";
 import { common } from "@ckb-lumos/common-scripts";
 import { Sign } from "./sign";
@@ -38,17 +40,24 @@ export class Transaction {
   // TODO: recharge record
   async summarize(
     accountId: number,
-    address: string,
-    privateKey: string
+    addresses: string[],
+    privateKey: string,
+    tipHeader: Header
   ): Promise<number> {
-    const lockScript: Script = parseAddress(address);
-    const collector = indexer.collector({
-      lock: lockScript,
+    const lockScripts: Script[] = addresses.map((address) => {
+      return parseAddress(address);
+    });
+    const collectors = lockScripts.map((lockScript) => {
+      return indexer.collector({
+        lock: lockScript,
+      });
     });
 
     const cells: Cell[] = [];
-    for await (const inputCell of collector.collect()) {
-      cells.push(inputCell);
+    for (const collector of collectors) {
+      for await (const inputCell of collector.collect()) {
+        cells.push(inputCell);
+      }
     }
 
     if (cells.length === 0) {
@@ -62,16 +71,27 @@ export class Transaction {
     let txSkeleton = TransactionSkeleton({ cellProvider: indexer });
     txSkeleton = await common.transfer(
       txSkeleton,
-      [address],
+      addresses,
       primaryAddress,
-      totalCapacity
+      totalCapacity,
+      undefined,
+      tipHeader
     );
 
     txSkeleton = await common.payFee(
       txSkeleton,
       [primaryAddress],
-      Transaction.FEE
+      Transaction.FEE,
+      tipHeader
     );
+
+    // fromAddresses is addresses really used in transaction inputs
+    const fromAddresses: string[] = txSkeleton
+      .get("inputs")
+      .map((input) => {
+        return generateAddress(input.cell_output.lock);
+      })
+      .toJS();
 
     const tx = this.getTx(txSkeleton, privateKey);
 
@@ -82,7 +102,7 @@ export class Transaction {
       sudt_amount: "0",
       type: "summarize",
       to_address: primaryAddress,
-      from_addresses: [address],
+      from_addresses: fromAddresses,
       transaction_hash: txHash,
       account_id: accountId,
     };
@@ -92,21 +112,22 @@ export class Transaction {
     return recordId;
   }
 
-  // TODO: using indexer#subscribe to listen transaction committed
   async summarizeAll() {
     const addressEntities: AddressEntity[] = await this.knex
       .select()
       .from("addresses");
+    const tipHeader = await this.getTipBlockHeader();
 
     for (const addressEntity of addressEntities) {
-      const secpAddress: string = Address.generateSecpAddress(
+      const addresses: string[] = Address.generateAllAddresses(
         addressEntity.blake160
       );
 
       await this.summarize(
         addressEntity.account_id!,
-        secpAddress,
-        addressEntity.private_key
+        addresses,
+        addressEntity.private_key,
+        tipHeader
       );
     }
   }
@@ -125,17 +146,23 @@ export class Transaction {
     let txSkeleton: TransactionSkeletonType = TransactionSkeleton({
       cellProvider: indexer,
     });
+
+    const tipHeader: Header = await this.getTipBlockHeader();
+
     txSkeleton = await common.transfer(
       txSkeleton,
       [primaryAddress],
       toAddress,
-      capacity
+      capacity,
+      undefined,
+      tipHeader
     );
 
     txSkeleton = await common.payFee(
       txSkeleton,
       [primaryAddress],
-      Transaction.FEE
+      Transaction.FEE,
+      tipHeader
     );
 
     const tx = this.getTx(txSkeleton, primaryPrivateKey);
@@ -154,6 +181,11 @@ export class Transaction {
     const recordId: number = await new Record().save(recordEntity);
 
     return recordId;
+  }
+
+  private async getTipBlockHeader(): Promise<Header> {
+    const header: Header = await rpc.get_tip_header();
+    return header;
   }
 
   private getTx(
