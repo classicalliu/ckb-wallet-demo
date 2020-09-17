@@ -4,6 +4,8 @@ import {
   Cell,
   Transaction as TransactionInterface,
   Header,
+  HexString,
+  utils,
 } from "@ckb-lumos/base";
 import {
   parseAddress,
@@ -12,12 +14,14 @@ import {
   TransactionSkeletonType,
   generateAddress,
 } from "@ckb-lumos/helpers";
-import { common } from "@ckb-lumos/common-scripts";
+import { common, sudt } from "@ckb-lumos/common-scripts";
 import { Sign } from "./sign";
 import { Record, RecordEntity } from "./record";
 import Address, { AddressEntity } from "./address";
 import Knex from "knex";
 import { defaultConnection } from "../db/connection";
+import { getConfig } from "@ckb-lumos/config-manager";
+const { readBigUInt128LE } = utils;
 
 // TODO: refactor these env vars
 const primaryBlake160: string =
@@ -38,7 +42,7 @@ export class Transaction {
 
   // collect capacity / sudt from addresses => primary address
   // TODO: recharge record
-  async summarize(
+  async summarizeCkb(
     accountId: number,
     addresses: string[],
     privateKey: string,
@@ -50,6 +54,7 @@ export class Transaction {
     const collectors = lockScripts.map((lockScript) => {
       return indexer.collector({
         lock: lockScript,
+        type: "empty",
       });
     });
 
@@ -112,6 +117,105 @@ export class Transaction {
     return recordId;
   }
 
+  async summarizeSudt(
+    accountId: number,
+    addresses: string[],
+    privateKey: string,
+    tipHeader: Header
+  ): Promise<number> {
+    const sudtTemplate = getConfig().SCRIPTS.SUDT!;
+    const lockScripts: Script[] = addresses.map((address) => {
+      return parseAddress(address);
+    });
+    const collectors = lockScripts.map((lockScript) => {
+      return indexer.collector({
+        lock: lockScript,
+        type: {
+          code_hash: sudtTemplate.CODE_HASH,
+          hash_type: sudtTemplate.HASH_TYPE,
+          args: "0x",
+        },
+        argsLen: 32,
+      });
+    });
+
+    const map = new Map<string, Cell[]>();
+
+    for (const collector of collectors) {
+      for await (const inputCell of collector.collect()) {
+        const typeArgs = inputCell.cell_output.type!.args;
+        let value: Cell[] = map.get(typeArgs) || [];
+        value.push(inputCell);
+        map.set(typeArgs, value);
+      }
+    }
+
+    if ([...map.values()].flat().length === 0) {
+      return -1;
+    }
+
+    let txSkeleton = TransactionSkeleton({ cellProvider: indexer });
+
+    let totalCapacity: bigint = 0n;
+    let totalAmount: bigint = 0n;
+    for (const [typeArgs, inputCells] of map) {
+      const capacity: bigint = inputCells
+        .map((cell) => BigInt(cell.cell_output.capacity))
+        .reduce((result, c) => result + c, 0n);
+
+      const amount: bigint = inputCells
+        .map((cell) => readBigUInt128LE(cell.data))
+        .reduce((result, c) => result + c, 0n);
+
+      totalCapacity += capacity;
+      totalAmount += amount;
+
+      txSkeleton = await sudt.transfer(
+        txSkeleton,
+        addresses,
+        typeArgs,
+        primaryAddress,
+        amount,
+        undefined,
+        capacity,
+        tipHeader
+      );
+    }
+
+    txSkeleton = await common.payFee(
+      txSkeleton,
+      [primaryAddress],
+      Transaction.FEE,
+      tipHeader
+    );
+
+    // fromAddresses is addresses really used in transaction inputs
+    const fromAddresses: string[] = txSkeleton
+      .get("inputs")
+      .map((input) => {
+        return generateAddress(input.cell_output.lock);
+      })
+      .toJS();
+
+    const tx = this.getTx(txSkeleton, privateKey);
+
+    const txHash: string = await rpc.send_transaction(tx);
+
+    const recordEntity: RecordEntity = {
+      capacity: totalCapacity.toString(),
+      sudt_amount: totalAmount.toString(),
+      type: "summarize",
+      to_address: primaryAddress,
+      from_addresses: fromAddresses,
+      transaction_hash: txHash,
+      account_id: accountId,
+    };
+
+    const recordId: number = await new Record().save(recordEntity);
+
+    return recordId;
+  }
+
   async summarizeAll() {
     const addressEntities: AddressEntity[] = await this.knex
       .select()
@@ -123,7 +227,14 @@ export class Transaction {
         addressEntity.blake160
       );
 
-      await this.summarize(
+      await this.summarizeCkb(
+        addressEntity.account_id!,
+        addresses,
+        addressEntity.private_key,
+        tipHeader
+      );
+
+      await this.summarizeSudt(
         addressEntity.account_id!,
         addresses,
         addressEntity.private_key,
@@ -141,36 +252,75 @@ export class Transaction {
   async withdraw(
     accountId: number,
     toAddress: string,
-    capacity: bigint
+    capacity?: bigint,
+    {
+      sudtAmount = undefined,
+      sudtToken = undefined,
+    }: {
+      sudtAmount?: bigint;
+      sudtToken?: HexString;
+    } = {}
   ): Promise<number> {
+    if (!capacity && (!sudtAmount || !sudtToken)) {
+      throw new Error(`Error with capacity & sudt token / amount!`);
+    }
+
     let txSkeleton: TransactionSkeletonType = TransactionSkeleton({
       cellProvider: indexer,
     });
 
     const tipHeader: Header = await this.getTipBlockHeader();
 
-    txSkeleton = await common.transfer(
-      txSkeleton,
-      [primaryAddress],
-      toAddress,
-      capacity,
-      undefined,
-      tipHeader
-    );
+    const fromInfos = [primaryAddress];
+
+    let sudtMode: boolean = false;
+    if (sudtToken && sudtAmount) {
+      sudtMode = true;
+      txSkeleton = await sudt.transfer(
+        txSkeleton,
+        fromInfos,
+        sudtToken,
+        toAddress,
+        sudtAmount,
+        undefined,
+        capacity,
+        tipHeader
+      );
+    } else if (!!capacity) {
+      txSkeleton = await common.transfer(
+        txSkeleton,
+        fromInfos,
+        toAddress,
+        capacity,
+        undefined,
+        tipHeader
+      );
+    } else {
+      throw new Error(`Error with capacity & sudtAmount!`);
+    }
 
     txSkeleton = await common.payFee(
       txSkeleton,
-      [primaryAddress],
+      fromInfos,
       Transaction.FEE,
       tipHeader
     );
+
+    const realCapacity: bigint = txSkeleton
+      .get("outputs")
+      .filter((output) => {
+        const addr = generateAddress(output.cell_output.lock);
+        return addr === toAddress;
+      })
+      .map((output) => BigInt(output.cell_output.capacity))
+      .reduce((result, c) => result + c, 0n);
 
     const tx = this.getTx(txSkeleton, primaryPrivateKey);
     const txHash: string = await rpc.send_transaction(tx);
 
     const recordEntity: RecordEntity = {
-      capacity: capacity.toString(),
-      sudt_amount: "0",
+      capacity: realCapacity.toString(),
+      sudt_amount: sudtMode ? sudtAmount!.toString() : "0",
       type: "withdraw",
       to_address: toAddress,
       from_addresses: [primaryAddress],
