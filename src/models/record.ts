@@ -27,4 +27,12 @@ export class Record {
     console.log("Record save entity:", ids);
     return ids[0];
   }
+
+  async getByAccountId(accountId: number): Promise<RecordEntity[]> {
+    const records = await this.knex.select().from("records").where({
+      account_id: accountId,
+    });
+
+    return records;
+  }
 }

@@ -21,6 +21,7 @@ import usersRouter from "./routes/users";
 import accountsRouter from "./routes/accounts";
 import addressesRouter from "./routes/addresses";
 import withdrawRouter from "./routes/withdraw";
+import reconciliationRouter from "./routes/reconciliation";
 import { init } from "./models/init";
 
 let app = express();
@@ -50,6 +51,7 @@ app.use("/users", usersRouter);
 app.use("/accounts", accountsRouter);
 app.use("/addresses", addressesRouter);
 app.use("/withdraw", withdrawRouter);
+app.use("/reconciliation", reconciliationRouter);
 
 // catch 404 and forward to error handler
 app.use((_req, _res, next) => {

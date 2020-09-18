@@ -22,6 +22,7 @@ import Knex from "knex";
 import { defaultConnection } from "../db/connection";
 import { getConfig } from "@ckb-lumos/config-manager";
 const { readBigUInt128LE } = utils;
+import { Parser } from "json2csv";
 
 // TODO: refactor these env vars
 const primaryBlake160: string =
@@ -331,6 +332,36 @@ export class Transaction {
     const recordId: number = await new Record().save(recordEntity);
 
     return recordId;
+  }
+
+  async getTransactions(accountId: number) {
+    const record = new Record();
+
+    const records = await record.getByAccountId(accountId);
+
+    return records.map((record) => {
+      return {
+        transaction_hash: record.transaction_hash,
+        capacity:
+          record.type === "withdraw"
+            ? record.capacity
+            : (-BigInt(record.capacity)).toString(),
+        sudt_amount:
+          record.type === "withdraw"
+            ? record.sudt_amount
+            : (-BigInt(record.sudt_amount)).toString(),
+      };
+    });
+  }
+
+  async downloadCsv(accountId: number): Promise<string> {
+    const records = await this.getTransactions(accountId);
+
+    const fields: string[] = ["transaction_hash", "capacity", "sudt_amount"];
+
+    const json2csv = new Parser({ fields });
+    const csv = json2csv.parse(records);
+    return csv;
   }
 
   private async getTipBlockHeader(): Promise<Header> {

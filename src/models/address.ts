@@ -61,7 +61,7 @@ export class Address {
   }
 
   static generateMultisigScript(args: string): Script {
-    const multisigTemplate = getConfig().SCRIPTS.SECP256K1_BLAKE160_MUTLISIG!;
+    const multisigTemplate = getConfig().SCRIPTS.SECP256K1_BLAKE160_MULTISIG!;
     const script: Script = {
       code_hash: multisigTemplate.CODE_HASH,
       hash_type: multisigTemplate.HASH_TYPE,
