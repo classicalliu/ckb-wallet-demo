@@ -12,9 +12,6 @@ import path from "path";
 import cookieParser from "cookie-parser";
 import logger from "morgan";
 import bodyParser from "body-parser";
-import expressJwt from "express-jwt";
-
-import { JWT_SECRET_KEY } from "./models/account";
 
 import indexRouter from "./routes/index";
 import usersRouter from "./routes/users";
@@ -37,14 +34,6 @@ app.use(cookieParser());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, "public")));
-app.use(
-  expressJwt({
-    secret: JWT_SECRET_KEY,
-    algorithms: ["HS256"],
-  }).unless({
-    path: ["/accounts/login", "/accounts"],
-  })
-);
 
 app.use("/", indexRouter);
 app.use("/users", usersRouter);
