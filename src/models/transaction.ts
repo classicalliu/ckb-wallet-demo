@@ -344,12 +344,12 @@ export class Transaction {
         transaction_hash: record.transaction_hash,
         capacity:
           record.type === "withdraw"
-            ? record.capacity
-            : (-BigInt(record.capacity)).toString(),
+            ? (-BigInt(record.capacity)).toString()
+            : record.capacity,
         sudt_amount:
           record.type === "withdraw"
-            ? record.sudt_amount
-            : (-BigInt(record.sudt_amount)).toString(),
+            ? (-BigInt(record.sudt_amount)).toString()
+            : record.sudt_amount,
       };
     });
   }
@@ -362,6 +362,28 @@ export class Transaction {
     const json2csv = new Parser({ fields });
     const csv = json2csv.parse(records);
     return csv;
+  }
+
+  async getBalance(
+    accountId: number
+  ): Promise<{
+    capacity: string;
+    sudt_amount: string;
+  }> {
+    const records = await this.getTransactions(accountId);
+
+    const capacity = records
+      .map((record) => BigInt(record.capacity))
+      .reduce((result, c) => result + c, 0n);
+
+    const sudtAmount = records
+      .map((record) => BigInt(record.sudt_amount))
+      .reduce((result, c) => result + c, 0n);
+
+    return {
+      capacity: capacity.toString(),
+      sudt_amount: sudtAmount.toString(),
+    };
   }
 
   private async getTipBlockHeader(): Promise<Header> {
