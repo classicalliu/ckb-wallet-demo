@@ -1,0 +1,45 @@
+name: Check
+
+on:
+  push:
+    branches: [develop]
+  pull_request:
+    branches: [develop]
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }} # runs a test on Ubuntu, Windows and macOS
+
+    strategy:
+      matrix:
+        os: [macOS-latest, windows-latest, ubuntu-latest]
+
+    steps:
+      - name: Setup repo
+        uses: actions/checkout@v2
+        
+      - name: Setup node
+        uses: actions/setup-node@v1.4.3
+        with:
+          node-version: 12.18.4
+          
+      - name: Cache npm
+        uses: actions/cache@v2
+        with:
+          path: |
+            **/node_modules
+
+      - name: yarn
+        run: yarn
+
+      - name: build
+        run: yarn run build
+
+      - name: test
+        run: yarn run test
+        
+      - name: fmt & lint & diff
+        run: |
+          yarn run fmt
+          yarn run lint
+          git diff --exit-code
