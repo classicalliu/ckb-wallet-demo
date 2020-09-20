@@ -47,6 +47,17 @@ echo '{
 http://localhost:3000/addresses
 ```
 
+Create a new address.
+
+```bash
+echo '{
+  "accountId": 1
+}' \
+| tr -d '\n' \
+| curl -H "Content-Type:application/json" -X POST -d @- \
+http://localhost:3000/addresses
+```
+
 Then you can send capacity to returned address.
 
 And withdraw from wallet.
