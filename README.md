@@ -111,6 +111,32 @@ Response example
 }
 ```
 
+Or withdraw sUDT.
+
+```bash
+echo '{
+  "account_id": 1,
+  "address": "ckt1qyqwyxfa75whssgkq9ukkdd30d8c7txct0gqfvmy2v",
+  "sudt_token": "0x37b6185306a094b2e5343a6c7d999fd1268912a45088ffa4f8963e642c1cdf4e",
+  "sudt_amount": "100"
+}' \
+| tr -d '\n' \
+| curl -H "Content-Type:application/json" -X POST -d @- \
+http://localhost:3000/withdraw/sudt
+```
+
+Response example
+
+```json
+{
+  "id": 11,
+  "transaction_hash": "0xc6bcb2acda97d8b6f38a0bd10d21efcc207b2d54a66000c699898fdf11177fb7",
+  "account_id": 1,
+  "capacity": "14200000000",
+  "sudt_amount": "100"
+}
+```
+
 And see transaction records.
 
 ```bash
