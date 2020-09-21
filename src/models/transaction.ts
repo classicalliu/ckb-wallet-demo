@@ -25,11 +25,8 @@ const { readBigUInt128LE } = utils;
 import { Parser } from "json2csv";
 
 // TODO: refactor these env vars
-const primaryBlake160: string =
-  process.env.PRIMARY_BLAKE160! || "0x3539cd80f4d8ab4a3787bf5e7f87f32c9022ce08";
-const primaryPrivateKey: string =
-  process.env.PRIMARY_PRIVATE_KEY! ||
-  "0x81d5eea00072b570b0d5870df9bbc12c0c38c209672ccfac97b2244889088ebd";
+const primaryBlake160: string = process.env.PRIMARY_BLAKE160!;
+const primaryPrivateKey: string = process.env.PRIMARY_PRIVATE_KEY!;
 
 const primaryAddress: string = Address.generateSecpAddress(primaryBlake160);
 

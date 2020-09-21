@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 import { initializeConfig } from "@ckb-lumos/config-manager";
 
 // setup lumos config
