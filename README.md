@@ -84,7 +84,7 @@ echo '{
 http://localhost:3000/reconciliation
 ```
 
-You you can download this by 
+Or you can download this by
 
 ```bash
 echo '{
