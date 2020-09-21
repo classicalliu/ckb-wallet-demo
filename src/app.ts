@@ -1,16 +1,16 @@
 require("dotenv").config();
 
+import path from "path";
 import { initializeConfig } from "@ckb-lumos/config-manager";
 
-// setup lumos config
-// TODO: refactor these env vars
-process.env.LUMOS_CONFIG_NAME = "DEV";
-process.env.LUMOS_CONFIG_FILE = __dirname + "/../dev_config.json";
+if (process.env.LUMOS_CONFIG_FILE) {
+  process.env.LUMOS_CONFIG_FILE = path.resolve(process.env.LUMOS_CONFIG_FILE);
+}
+
 initializeConfig();
 
 import createError from "http-errors";
 import express from "express";
-import path from "path";
 import cookieParser from "cookie-parser";
 import logger from "morgan";
 import bodyParser from "body-parser";
