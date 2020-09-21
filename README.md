@@ -43,7 +43,7 @@ Get current address.
 
 ```bash
 echo '{
-  "accountId": 1
+  "account_id": 1
 }' \
 | tr -d '\n' \
 | curl -H "Content-Type:application/json" -X GET -d @- \
@@ -66,7 +66,7 @@ Create a new address.
 
 ```bash
 echo '{
-  "accountId": 1
+  "account_id": 1
 }' \
 | tr -d '\n' \
 | curl -H "Content-Type:application/json" -X POST -d @- \
@@ -90,7 +90,7 @@ And withdraw from wallet.
 
 ```bash
 echo '{
-  "accountId": 1,
+  "account_id": 1,
   "address": "ckt1qyqwyxfa75whssgkq9ukkdd30d8c7txct0gqfvmy2v",
   "capacity": "10000000000"
 }' \
@@ -115,7 +115,7 @@ And see transaction records.
 
 ```bash
 echo '{
-  "accountId": 1
+  "account_id": 1
 }' \
 | tr -d '\n' \
 | curl -H "Content-Type:application/json" -X GET -d @- \
@@ -143,7 +143,7 @@ Or you can download this by
 
 ```bash
 echo '{
-  "accountId": 1
+  "account_id": 1
 }' \
 | tr -d '\n' \
 | curl -H "Content-Type:application/json" -X GET -d @- -o transaction.csv \
@@ -154,7 +154,7 @@ Get balance
 
 ```bash
 echo '{
-  "accountId": 1
+  "account_id": 1
 }' \
 | tr -d '\n' \
 | curl -H "Content-Type:application/json" -X GET -d @- \
