@@ -258,7 +258,7 @@ export class Transaction {
       sudtAmount?: bigint;
       sudtToken?: HexString;
     } = {}
-  ): Promise<number> {
+  ) {
     if (!capacity && (!sudtAmount || !sudtToken)) {
       throw new Error(`Error with capacity & sudt token / amount!`);
     }
@@ -316,9 +316,10 @@ export class Transaction {
     const tx = this.getTx(txSkeleton, primaryPrivateKey);
     const txHash: string = await rpc.send_transaction(tx);
 
+    const sudt_amount = sudtMode ? sudtAmount!.toString() : "0";
     const recordEntity: RecordEntity = {
       capacity: realCapacity.toString(),
-      sudt_amount: sudtMode ? sudtAmount!.toString() : "0",
+      sudt_amount,
       type: "withdraw",
       to_address: toAddress,
       from_addresses: [primaryAddress],
@@ -328,7 +329,13 @@ export class Transaction {
 
     const recordId: number = await new Record().save(recordEntity);
 
-    return recordId;
+    return {
+      id: recordId,
+      transaction_hash: txHash,
+      account_id: accountId,
+      capacity: realCapacity.toString(),
+      sudt_amount,
+    };
   }
 
   async getTransactions(accountId: number) {

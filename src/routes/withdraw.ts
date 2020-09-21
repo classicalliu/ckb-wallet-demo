@@ -9,15 +9,13 @@ router.post("/", async (req, res, _next) => {
   const capacity: bigint = BigInt(req.body.capacity);
 
   const transaction = new Transaction();
-  const result: number = await transaction.withdraw(
+  const result = await transaction.withdraw(
     getAccountId(req, res),
     address,
     capacity
   );
 
-  res.json({
-    id: result,
-  });
+  res.json(result);
 });
 
 router.post("/sudt", async (req, res, _next) => {
@@ -26,7 +24,7 @@ router.post("/sudt", async (req, res, _next) => {
   const sudtToken: string = req.body.sudt_token;
 
   const transaction = new Transaction();
-  const result: number = await transaction.withdraw(
+  const result = await transaction.withdraw(
     getAccountId(req, res),
     address,
     undefined,
@@ -36,9 +34,7 @@ router.post("/sudt", async (req, res, _next) => {
     }
   );
 
-  res.json({
-    id: result,
-  });
+  res.json(result);
 });
 
 export default router;
