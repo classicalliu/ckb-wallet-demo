@@ -16,7 +16,6 @@ import logger from "morgan";
 import bodyParser from "body-parser";
 
 import indexRouter from "./routes/index";
-import usersRouter from "./routes/users";
 import accountsRouter from "./routes/accounts";
 import addressesRouter from "./routes/addresses";
 import withdrawRouter from "./routes/withdraw";
@@ -38,7 +37,6 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, "public")));
 
 app.use("/", indexRouter);
-app.use("/users", usersRouter);
 app.use("/accounts", accountsRouter);
 app.use("/addresses", addressesRouter);
 app.use("/withdraw", withdrawRouter);
