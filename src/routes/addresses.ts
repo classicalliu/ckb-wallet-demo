@@ -15,6 +15,8 @@ router.post("/", async (req, res) => {
     public_key: addressEntity.public_key,
     account_id: addressEntity.account_id,
     secp_address: Address.generateSecpAddress(addressEntity.blake160),
+    multisig_address: Address.generateMultisigAddress(addressEntity.blake160),
+    acp_address: Address.generateAcpAddress(addressEntity.blake160),
   };
 
   res.json(result);
@@ -32,6 +34,8 @@ router.get("/", async (req, res) => {
     public_key: addr.public_key,
     account_id: addr.account_id,
     secp_address: addr.secp_address,
+    multisig_address: addr.multisig_address,
+    acp_address: addr.acp_address,
   };
 
   res.json(result);

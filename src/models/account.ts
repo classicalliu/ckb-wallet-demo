@@ -49,6 +49,8 @@ export default class Account {
   ): Promise<
     AddressEntity & {
       secp_address: string;
+      multisig_address: string;
+      acp_address: string;
     }
   > {
     const addressEntities: AddressEntity[] = await this.knex
@@ -67,6 +69,10 @@ export default class Account {
     return {
       ...currentAddressEntity,
       secp_address: Address.generateSecpAddress(currentAddressEntity.blake160),
+      multisig_address: Address.generateMultisigAddress(
+        currentAddressEntity.blake160
+      ),
+      acp_address: Address.generateAcpAddress(currentAddressEntity.blake160),
     };
   }
 
