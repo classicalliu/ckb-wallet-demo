@@ -342,10 +342,24 @@ export class Transaction {
       .map((input) => BigInt(input.cell_output.capacity))
       .reduce((result, c) => result + c, 0n);
 
+    const sudt_amount = sudtMode ? sudtAmount!.toString() : "0";
+
+    const balance = await this.getBalance(accountId);
+
+    if (realCapacity > BigInt(balance.capacity)) {
+      throw new Error(
+        `Capacity not enough! You want to withdraw ${realCapacity} but only ${balance.capacity}.`
+      );
+    }
+    if (BigInt(sudt_amount) > BigInt(balance.sudt_amount)) {
+      throw new Error(
+        `Sudt amount not enough! You want to withdraw ${sudt_amount} but only ${balance.sudt_amount}.`
+      );
+    }
+
     const tx = this.getTx(txSkeleton, primaryPrivateKey);
     const txHash: string = await rpc.send_transaction(tx);
 
-    const sudt_amount = sudtMode ? sudtAmount!.toString() : "0";
     const recordEntity: RecordEntity = {
       capacity: realCapacity.toString(),
       sudt_amount,

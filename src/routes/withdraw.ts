@@ -9,11 +9,18 @@ router.post("/", async (req, res, _next) => {
   const capacity: bigint = BigInt(req.body.capacity);
 
   const transaction = new Transaction();
-  const result = await transaction.withdraw(
-    getAccountId(req, res),
-    address,
-    capacity
-  );
+  let result;
+  try {
+    result = await transaction.withdraw(
+      getAccountId(req, res),
+      address,
+      capacity
+    );
+  } catch (err) {
+    res.status(500).json({
+      message: err.message,
+    });
+  }
 
   res.json(result);
 });
@@ -24,15 +31,22 @@ router.post("/sudt", async (req, res, _next) => {
   const sudtToken: string = req.body.sudt_token;
 
   const transaction = new Transaction();
-  const result = await transaction.withdraw(
-    getAccountId(req, res),
-    address,
-    undefined,
-    {
-      sudtAmount,
-      sudtToken,
-    }
-  );
+  let result;
+  try {
+    result = await transaction.withdraw(
+      getAccountId(req, res),
+      address,
+      undefined,
+      {
+        sudtAmount,
+        sudtToken,
+      }
+    );
+  } catch (err) {
+    res.status(500).json({
+      message: err.message,
+    });
+  }
 
   res.json(result);
 });
