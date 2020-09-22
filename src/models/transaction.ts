@@ -72,9 +72,19 @@ export class Transaction {
       .reduce((result, c) => result + c, 0n);
 
     let txSkeleton = TransactionSkeleton({ cellProvider: indexer });
+    // Will not preserve acp cell
+    const fromInfos = addresses.map((addr) => {
+      if (Address.isAcpAddress(addr)) {
+        return {
+          address: addr,
+          destroyable: true,
+        };
+      }
+      return addr;
+    });
     txSkeleton = await common.transfer(
       txSkeleton,
-      addresses,
+      fromInfos,
       primaryAddress,
       totalCapacity,
       undefined,
@@ -168,9 +178,19 @@ export class Transaction {
       totalCapacity += capacity;
       totalAmount += amount;
 
+      // TODO: waiting sudt.transfer support acp destroyable
+      const fromInfos = addresses.map((addr) => {
+        if (Address.isAcpAddress(addr)) {
+          return {
+            address: addr,
+            destroyable: true,
+          };
+        }
+        return addr;
+      });
       txSkeleton = await sudt.transfer(
         txSkeleton,
-        addresses,
+        fromInfos,
         typeArgs,
         primaryAddress,
         amount,
@@ -304,13 +324,22 @@ export class Transaction {
       tipHeader
     );
 
-    const realCapacity: bigint = txSkeleton
+    let realCapacity: bigint = txSkeleton
       .get("outputs")
       .filter((output) => {
         const addr = generateAddress(output.cell_output.lock);
         return addr === toAddress;
       })
       .map((output) => BigInt(output.cell_output.capacity))
+      .reduce((result, c) => result + c, 0n);
+
+    realCapacity -= txSkeleton
+      .get("inputs")
+      .filter((input) => {
+        const addr = generateAddress(input.cell_output.lock);
+        return addr === toAddress;
+      })
+      .map((input) => BigInt(input.cell_output.capacity))
       .reduce((result, c) => result + c, 0n);
 
     const tx = this.getTx(txSkeleton, primaryPrivateKey);

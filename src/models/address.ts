@@ -81,6 +81,19 @@ export class Address {
     return script;
   }
 
+  static isAcpScript(script: Script): boolean {
+    const template = getConfig().SCRIPTS.ANYONE_CAN_PAY!;
+    return (
+      script.code_hash === template.CODE_HASH &&
+      script.hash_type === template.HASH_TYPE
+    );
+  }
+
+  static isAcpAddress(address: string): boolean {
+    const script = parseAddress(address);
+    return this.isAcpScript(script);
+  }
+
   static generateSecpAddress(args: string): string {
     return generateAddress(this.generateSecpScript(args));
   }
