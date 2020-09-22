@@ -1,7 +1,7 @@
 import { Indexer } from "@ckb-lumos/indexer";
 import { RPC } from "ckb-js-toolkit";
 
-const uri = "http://127.0.0.1:8114";
+const uri = process.env.CHAIN_RPC_URI!;
 const path = __dirname + "/../../indexer-data";
 const indexer = new Indexer(uri, path);
 

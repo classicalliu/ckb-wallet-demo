@@ -1,12 +1,47 @@
 # ckb-wallet-demo
 
-It's a demo to show how to integrate lumos into a wallet or a exchange project.
+It's a demo to show how to integrate lumos into a wallet or an exchange project.
 
-It's just a demo, so it don't have account password, and save private key just in plaintext. Don't imitate this in production.
+It's just a demo, so it don't have account password, and save private key just in plaintext. **Don't imitate this in production**.
 
-## Usage
+It has the following functions.
 
-Run migration
+* Create a new account
+* Create new receiving address of account
+  * Then you can send CKB / sUDT to this address
+  * Support secp256k1_blake160 / secp256k1_blake160_multisig / anyone_can_pay lock scripts and sUDT
+* Withdraw your CKB / sUDT (Or send to anyone else.)
+* Get your current balance
+* Get your transaction reconciliation
+
+## How to start
+
+Start your node firstly. Set your node RPC uri to `.env`.
+
+```bash
+CHAIN_RPC_URI="http://127.0.0.1:8114"
+```
+
+Install dependences.
+
+```bash
+yarn
+```
+
+Set your own config
+
+If you want to using in mainnet, set `LUMOS_CONFIG_NAME="LINA"` in `.env` file.
+
+If you want to using in testnet, set `LUMOS_CONFIG_FILE="AGGRON4"` in `.env` file.
+
+Or if you want to using in your own dev chain, create a `dev_cofig.json` like [`dev_config.json`](./dev_config.json), then set
+
+```bash
+LUMOS_CONFIG_NAME="DEV"
+LUMOS_CONFIG_FILE="your config file path"
+```
+
+Run migration to create sqlite db.
 
 ```bash
 yarn run knex:migrate:latest
@@ -20,7 +55,7 @@ yarn run watch
 
 ## APIs
 
-create an account firstly.
+### Create an account firstly.
 
 ```bash
 echo '{
@@ -39,7 +74,7 @@ Response example
 }
 ```
 
-Get current address.
+### Provide an `account_id` to show this account current receiving address.
 
 ```bash
 echo '{
@@ -62,7 +97,7 @@ Response example
 }
 ```
 
-Create a new address.
+### If you want to renew your receiving adress, just provide an `account_id` and create a new one.
 
 ```bash
 echo '{
@@ -84,9 +119,31 @@ Response example
 }
 ```
 
-Then you can send capacity to returned address.
+### Then you can send capacity to returned address.
 
-And withdraw from wallet.
+And you can get balance of provided account by `account_id`.
+
+```bash
+echo '{
+  "account_id": 1
+}' \
+| tr -d '\n' \
+| curl -H "Content-Type:application/json" -X GET -d @- \
+http://localhost:3000/accounts/balance
+```
+
+Response example
+
+```json
+{
+  "capacity": "170000000000",
+  "sudt_amount": "0"
+}
+```
+
+### If you want to withdraw your CKB / sUDT to your own address or send it to anyone else, just provide your `account_id`, receiving address, and capacity(in CKB) or sudt_token & sudt_amount(in sUDT) your need.
+
+Withdraw CKB example.
 
 ```bash
 echo '{
@@ -111,7 +168,7 @@ Response example
 }
 ```
 
-Or withdraw sUDT.
+Withdraw sUDT example.
 
 ```bash
 echo '{
@@ -137,7 +194,9 @@ Response example
 }
 ```
 
-And see transaction records.
+### Follwing APIs show how to show your transaction records or download it.
+
+Show transaction records example.
 
 ```bash
 echo '{
@@ -165,7 +224,7 @@ Response example
 ]
 ```
 
-Or you can download this by
+Download transaction records example.
 
 ```bash
 echo '{
@@ -174,24 +233,4 @@ echo '{
 | tr -d '\n' \
 | curl -H "Content-Type:application/json" -X GET -d @- -o transaction.csv \
 http://localhost:3000/reconciliation/download
-```
-
-Get balance
-
-```bash
-echo '{
-  "account_id": 1
-}' \
-| tr -d '\n' \
-| curl -H "Content-Type:application/json" -X GET -d @- \
-http://localhost:3000/accounts/balance
-```
-
-Response example
-
-```json
-{
-  "capacity": "170000000000",
-  "sudt_amount": "0"
-}
 ```
