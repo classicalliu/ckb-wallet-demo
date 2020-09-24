@@ -93,9 +93,7 @@ Response example
   "blake160": "0xeea7d8a395fc981b249ede798e466a744c4ab2f9",
   "public_key": "0x027348a64156544c06a98a8b86ef7cb1cbce30df2fc1d3e3e3a19c43e4a72939ca",
   "account_id": 1,
-  "secp_address": "ckt1qyqwaf7c5w2lexqmyj0du7vwge48gnz2ktusyeq0wu",
-  "multisig_address": "ckt1qyq7af7c5w2lexqmyj0du7vwge48gnz2ktuss43mpg",
-  "acp_address": "ckt1q33khc40ky7p6re50rpzcetjkykazw75jtmysvpd26p0lln70m764m48mz3etlycrvjfahne3erx5azvf2e0jy9v2rr"
+  "receiving_address": "ckt1qyqwaf7c5w2lexqmyj0du7vwge48gnz2ktusyeq0wu"
 }
 ```
 
@@ -117,9 +115,7 @@ Response example
   "blake160": "0xeb5b99e86004e42a44712320a1e34e518c454e9b",
   "public_key": "0x02ac1fdcdefdcffa9b1932a4d5ea3babdcb37c6559d31f2dd567a0510c54ef49b1",
   "account_id": 1,
-  "secp_address": "ckt1qyqwkkueapsqfep2g3cjxg9pud89rrz9f6ds40nl8n",
-  "multisig_address": "ckt1qyq7kkueapsqfep2g3cjxg9pud89rrz9f6dsprztg8",
-  "acp_address": "ckt1q33khc40ky7p6re50rpzcetjkykazw75jtmysvpd26p0lln70m76466mn85xqp8y9fz8zgeq5835u5vvg48fk63eqqx"
+  "receiving_address": "ckt1qyqwkkueapsqfep2g3cjxg9pud89rrz9f6ds40nl8n"
 }
 ```
 

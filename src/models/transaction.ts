@@ -72,19 +72,10 @@ export class Transaction {
       .reduce((result, c) => result + c, 0n);
 
     let txSkeleton = TransactionSkeleton({ cellProvider: indexer });
-    // Will not preserve acp cell
-    const fromInfos = addresses.map((addr) => {
-      if (Address.isAcpAddress(addr)) {
-        return {
-          address: addr,
-          destroyable: true,
-        };
-      }
-      return addr;
-    });
+
     txSkeleton = await common.transfer(
       txSkeleton,
-      fromInfos,
+      addresses,
       primaryAddress,
       totalCapacity,
       undefined,
@@ -178,19 +169,9 @@ export class Transaction {
       totalCapacity += capacity;
       totalAmount += amount;
 
-      // TODO: waiting sudt.transfer support acp destroyable
-      const fromInfos = addresses.map((addr) => {
-        if (Address.isAcpAddress(addr)) {
-          return {
-            address: addr,
-            destroyable: true,
-          };
-        }
-        return addr;
-      });
       txSkeleton = await sudt.transfer(
         txSkeleton,
-        fromInfos,
+        addresses,
         typeArgs,
         primaryAddress,
         amount,
@@ -241,20 +222,20 @@ export class Transaction {
     const tipHeader = await this.getTipBlockHeader();
 
     for (const addressEntity of addressEntities) {
-      const addresses: string[] = Address.generateAllAddresses(
+      const secpAddress: string = Address.generateSecpAddress(
         addressEntity.blake160
       );
 
       await this.summarizeCkb(
         addressEntity.account_id!,
-        addresses,
+        [secpAddress],
         addressEntity.private_key,
         tipHeader
       );
 
       await this.summarizeSudt(
         addressEntity.account_id!,
-        addresses,
+        [secpAddress],
         addressEntity.private_key,
         tipHeader
       );
