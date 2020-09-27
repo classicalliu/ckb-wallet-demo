@@ -22,6 +22,7 @@
     "@ckb-lumos/config-manager": "^0.12.0",
     "@ckb-lumos/helpers": "^0.12.0",
     "@ckb-lumos/indexer": "^0.12.0",
+    "@ckb-lumos/transaction-manager": "^0.12.0",
     "@nervosnetwork/ckb-sdk-utils": "^0.34.0",
     "body-parser": "^1.19.0",
     "ckb-js-toolkit": "^0.9.1",

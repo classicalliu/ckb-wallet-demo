@@ -23,6 +23,7 @@ import { defaultConnection } from "../db/connection";
 import { getConfig } from "@ckb-lumos/config-manager";
 const { readBigUInt128LE } = utils;
 import { Parser } from "json2csv";
+import { transactionManager } from "./transaction-manager";
 
 // TODO: refactor these env vars
 const primaryBlake160: string = process.env.PRIMARY_BLAKE160!;
@@ -84,7 +85,7 @@ export class Transaction {
 
     const tx = this.getTx(txSkeleton, privateKey);
 
-    const txHash: string = await rpc.send_transaction(tx);
+    const txHash: string = await transactionManager.send_transaction(tx);
 
     const recordEntity: RecordEntity = {
       capacity: totalCapacity.toString(),
@@ -272,7 +273,7 @@ export class Transaction {
         }
 
         const tx: TransactionInterface = this.getTx(txSkeleton, privateKey);
-        const txHash: string = await rpc.send_transaction(tx);
+        const txHash: string = await transactionManager.send_transaction(tx);
 
         summarizeRecords = summarizeRecords.map((record) => {
           record.transaction_hash = txHash;
@@ -414,7 +415,7 @@ export class Transaction {
     }
 
     const tx = this.getTx(txSkeleton, primaryPrivateKey);
-    const txHash: string = await rpc.send_transaction(tx);
+    const txHash: string = await transactionManager.send_transaction(tx);
 
     const recordEntity: RecordEntity = {
       capacity: realCapacity.toString(),
