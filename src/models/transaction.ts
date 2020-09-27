@@ -76,6 +76,10 @@ export class Transaction {
       tipHeader
     );
 
+    // change `cellProvider` to transactionManager to using pending cells, and more important, to filter cells which in transaction's inputs
+    // fee are all paid by primaryAddress, so using transactionManager to filter spent cells (still in pending transactions).
+    // same in sumarizeSudt
+    txSkeleton = txSkeleton.set("cellProvider", transactionManager);
     txSkeleton = await common.payFee(
       txSkeleton,
       [primaryAddress],
@@ -214,6 +218,7 @@ export class Transaction {
         tipHeader
       );
 
+      txSkeleton = txSkeleton.set("cellProvider", transactionManager);
       txSkeleton = await common.payFee(
         txSkeleton,
         [primaryAddress],
