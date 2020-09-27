@@ -323,6 +323,7 @@ export class Transaction {
     }
   }
 
+  // Transfer capacity / sudt to primary address regularly.
   async scheduleSummarizeAll() {
     return setInterval(async () => {
       return this.summarizeAll();
