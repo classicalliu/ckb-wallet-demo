@@ -39,28 +39,21 @@ export class Transaction {
   }
 
   // collect capacity / sudt from addresses => primary address
-  // TODO: recharge record
   async summarizeCkb(
     accountId: number,
-    addresses: string[],
+    fromAddress: string,
     privateKey: string,
     tipHeader: Header
   ): Promise<number> {
-    const lockScripts: Script[] = addresses.map((address) => {
-      return parseAddress(address);
-    });
-    const collectors = lockScripts.map((lockScript) => {
-      return indexer.collector({
-        lock: lockScript,
-        type: "empty",
-      });
+    const lockScript: Script = parseAddress(fromAddress);
+    const collector = indexer.collector({
+      lock: lockScript,
+      type: "empty",
     });
 
     const cells: Cell[] = [];
-    for (const collector of collectors) {
-      for await (const inputCell of collector.collect()) {
-        cells.push(inputCell);
-      }
+    for await (const inputCell of collector.collect()) {
+      cells.push(inputCell);
     }
 
     if (cells.length === 0) {
@@ -75,7 +68,7 @@ export class Transaction {
 
     txSkeleton = await common.transfer(
       txSkeleton,
-      addresses,
+      [fromAddress],
       primaryAddress,
       totalCapacity,
       undefined,
@@ -89,14 +82,6 @@ export class Transaction {
       tipHeader
     );
 
-    // fromAddresses is addresses really used in transaction inputs
-    const fromAddresses: string[] = txSkeleton
-      .get("inputs")
-      .map((input) => {
-        return generateAddress(input.cell_output.lock);
-      })
-      .toJS();
-
     const tx = this.getTx(txSkeleton, privateKey);
 
     const txHash: string = await rpc.send_transaction(tx);
@@ -106,113 +91,203 @@ export class Transaction {
       sudt_amount: "0",
       type: "summarize",
       to_address: primaryAddress,
-      from_addresses: fromAddresses,
+      from_addresses: [fromAddress],
       transaction_hash: txHash,
       account_id: accountId,
     };
 
-    const recordId: number = await new Record().save(recordEntity);
-
-    return recordId;
-  }
-
-  async summarizeSudt(
-    accountId: number,
-    addresses: string[],
-    privateKey: string,
-    tipHeader: Header
-  ): Promise<number> {
-    const sudtTemplate = getConfig().SCRIPTS.SUDT!;
-    const lockScripts: Script[] = addresses.map((address) => {
-      return parseAddress(address);
-    });
-    const collectors = lockScripts.map((lockScript) => {
-      return indexer.collector({
-        lock: lockScript,
-        type: {
-          code_hash: sudtTemplate.CODE_HASH,
-          hash_type: sudtTemplate.HASH_TYPE,
-          args: "0x",
-        },
-        argsLen: 32,
+    // record recharge info
+    const fromTxHashes = new Set(cells.map((cell) => cell.out_point!.tx_hash));
+    const rechargeEntities: RecordEntity[] = [];
+    for (const hash of fromTxHashes) {
+      const fromTxWithStatus = await rpc.get_transaction(hash);
+      const fromTx: TransactionInterface = fromTxWithStatus.transaction;
+      const targetOutput = fromTx.outputs.find((output) => {
+        return generateAddress(output.lock) === fromAddress;
       });
-    });
+      const inputAddresses: string[] = [];
+      for (const input of fromTx.inputs) {
+        const previousOutput = input.previous_output;
+        const fromOutputTxWithStatus = await rpc.get_transaction(
+          previousOutput.tx_hash
+        );
+        const fromOutputTx: TransactionInterface =
+          fromOutputTxWithStatus.transaction;
+        const o = fromOutputTx.outputs[+previousOutput.index];
+        const lock = o.lock;
+        inputAddresses.push(generateAddress(lock));
+      }
 
-    const map = new Map<string, Cell[]>();
-
-    for (const collector of collectors) {
-      for await (const inputCell of collector.collect()) {
-        const typeArgs = inputCell.cell_output.type!.args;
-        let value: Cell[] = map.get(typeArgs) || [];
-        value.push(inputCell);
-        map.set(typeArgs, value);
+      if (targetOutput) {
+        const entity: RecordEntity = {
+          capacity: BigInt(targetOutput.capacity).toString(),
+          sudt_amount: "0",
+          type: "recharge",
+          to_address: fromAddress,
+          from_addresses: inputAddresses,
+          transaction_hash: hash,
+        };
+        rechargeEntities.push(entity);
       }
     }
 
-    if ([...map.values()].flat().length === 0) {
-      return -1;
+    const recordIds = await new Record().saveAll([
+      recordEntity,
+      ...rechargeEntities,
+    ]);
+
+    return recordIds[0];
+  }
+
+  private isSudtCell(cell: Cell): boolean {
+    const template = getConfig().SCRIPTS.SUDT!;
+
+    const type = cell.cell_output.type;
+    if (!type) {
+      return false;
+    }
+    return (
+      type.code_hash === template.CODE_HASH &&
+      type.hash_type === template.HASH_TYPE
+    );
+  }
+
+  /**
+   * Every sudt type has one transaction.
+   *
+   * @param accountId
+   * @param address
+   * @param privateKey
+   * @param tipHeader
+   */
+  async summarizeSudt(
+    accountId: number,
+    address: string,
+    privateKey: string,
+    tipHeader: Header
+  ): Promise<number[]> {
+    const lockScript: Script = parseAddress(address);
+    const collector = indexer.collector({
+      lock: lockScript,
+      // TODO: Waiting for support type.argsLen = "any" to filter all sUDT cells
+    });
+
+    // key: type args / sudt token
+    const map = new Map<string, Cell[]>();
+
+    for await (const inputCell of collector.collect()) {
+      if (!this.isSudtCell(inputCell)) {
+        continue;
+      }
+      const typeArgs = inputCell.cell_output.type!.args;
+      let value: Cell[] = map.get(typeArgs) || [];
+      value.push(inputCell);
+      map.set(typeArgs, value);
     }
 
-    let txSkeleton = TransactionSkeleton({ cellProvider: indexer });
+    if ([...map.values()].flat().length === 0) {
+      return [];
+    }
 
-    let totalCapacity: bigint = 0n;
-    let totalAmount: bigint = 0n;
-    for (const [typeArgs, inputCells] of map) {
-      const capacity: bigint = inputCells
+    let allRecordIds: number[] = [];
+    for (const [sudtToken, cells] of map) {
+      let summarizeRecords: RecordEntity[] = [];
+      let rechargeRecords: RecordEntity[] = [];
+      let txSkeleton = TransactionSkeleton({ cellProvider: indexer });
+
+      const totalCapacity: bigint = cells
         .map((cell) => BigInt(cell.cell_output.capacity))
         .reduce((result, c) => result + c, 0n);
-
-      const amount: bigint = inputCells
+      const totalAmount: bigint = cells
         .map((cell) => readBigUInt128LE(cell.data))
         .reduce((result, c) => result + c, 0n);
 
-      totalCapacity += capacity;
-      totalAmount += amount;
-
       txSkeleton = await sudt.transfer(
         txSkeleton,
-        addresses,
-        typeArgs,
+        [address],
+        sudtToken,
         primaryAddress,
-        amount,
+        totalAmount,
         undefined,
-        capacity,
+        totalCapacity,
         tipHeader
       );
+
+      txSkeleton = await common.payFee(
+        txSkeleton,
+        [primaryAddress],
+        Transaction.FEE,
+        tipHeader
+      );
+
+      const record: RecordEntity = {
+        capacity: totalCapacity.toString(),
+        sudt_amount: totalAmount.toString(),
+        sudt_token: sudtToken,
+        type: "summarize",
+        to_address: primaryAddress,
+        from_addresses: [address],
+        transaction_hash: "",
+        account_id: accountId,
+      };
+      summarizeRecords.push(record);
+
+      const fromTxHashes = new Set(
+        cells.map((cell) => cell.out_point!.tx_hash!)
+      );
+      for (const hash of fromTxHashes) {
+        const fromTxWithStatus = await rpc.get_transaction(hash);
+        const fromTx: TransactionInterface = fromTxWithStatus.transaction;
+        const targetOutputIndex = fromTx.outputs.findIndex((output) => {
+          return generateAddress(output.lock) === address;
+        });
+        const inputAddresses: string[] = [];
+        for (const input of fromTx.inputs) {
+          const previousOutput = input.previous_output;
+          const fromOutputTxWithStatus = await rpc.get_transaction(
+            previousOutput.tx_hash
+          );
+          const fromOutputTx: TransactionInterface =
+            fromOutputTxWithStatus.transaction;
+          const o = fromOutputTx.outputs[+previousOutput.index];
+          const lock = o.lock;
+          inputAddresses.push(generateAddress(lock));
+        }
+
+        if (targetOutputIndex > -1) {
+          const targetOutput = fromTx.outputs[targetOutputIndex];
+          const sudtAmount: bigint = readBigUInt128LE(
+            fromTx.outputs_data[targetOutputIndex]
+          );
+          const rechargeRecord: RecordEntity = {
+            capacity: BigInt(targetOutput.capacity).toString(),
+            sudt_amount: sudtAmount.toString(),
+            sudt_token: sudtToken,
+            type: "recharge",
+            to_address: address,
+            from_addresses: inputAddresses,
+            transaction_hash: hash,
+          };
+          rechargeRecords.push(rechargeRecord);
+        }
+
+        const tx: TransactionInterface = this.getTx(txSkeleton, privateKey);
+        const txHash: string = await rpc.send_transaction(tx);
+
+        summarizeRecords = summarizeRecords.map((record) => {
+          record.transaction_hash = txHash;
+          return record;
+        });
+
+        const recordIds = await new Record().saveAll([
+          ...summarizeRecords,
+          ...rechargeRecords,
+        ]);
+        allRecordIds = allRecordIds.concat(recordIds);
+      }
     }
 
-    txSkeleton = await common.payFee(
-      txSkeleton,
-      [primaryAddress],
-      Transaction.FEE,
-      tipHeader
-    );
-
-    // fromAddresses is addresses really used in transaction inputs
-    const fromAddresses: string[] = txSkeleton
-      .get("inputs")
-      .map((input) => {
-        return generateAddress(input.cell_output.lock);
-      })
-      .toJS();
-
-    const tx = this.getTx(txSkeleton, privateKey);
-
-    const txHash: string = await rpc.send_transaction(tx);
-
-    const recordEntity: RecordEntity = {
-      capacity: totalCapacity.toString(),
-      sudt_amount: totalAmount.toString(),
-      type: "summarize",
-      to_address: primaryAddress,
-      from_addresses: fromAddresses,
-      transaction_hash: txHash,
-      account_id: accountId,
-    };
-
-    const recordId: number = await new Record().save(recordEntity);
-
-    return recordId;
+    return allRecordIds;
   }
 
   async summarizeAll() {
@@ -228,14 +303,14 @@ export class Transaction {
 
       await this.summarizeCkb(
         addressEntity.account_id!,
-        [secpAddress],
+        secpAddress,
         addressEntity.private_key,
         tipHeader
       );
 
       await this.summarizeSudt(
         addressEntity.account_id!,
-        [secpAddress],
+        secpAddress,
         addressEntity.private_key,
         tipHeader
       );
@@ -344,6 +419,7 @@ export class Transaction {
     const recordEntity: RecordEntity = {
       capacity: realCapacity.toString(),
       sudt_amount,
+      sudt_token: sudtToken,
       type: "withdraw",
       to_address: toAddress,
       from_addresses: [primaryAddress],
@@ -359,33 +435,49 @@ export class Transaction {
       account_id: accountId,
       capacity: realCapacity.toString(),
       sudt_amount,
+      sudt_token: sudtToken,
     };
   }
 
   async getTransactions(accountId: number) {
-    const record = new Record();
+    const recordModel = new Record();
 
-    const records = await record.getByAccountId(accountId);
+    const records = await recordModel.getByAccountId(accountId);
 
-    return records.map((record) => {
-      return {
-        transaction_hash: record.transaction_hash,
-        capacity:
-          record.type === "withdraw"
-            ? (-BigInt(record.capacity)).toString()
-            : record.capacity,
-        sudt_amount:
-          record.type === "withdraw"
-            ? (-BigInt(record.sudt_amount)).toString()
-            : record.sudt_amount,
-      };
-    });
+    // "recharge" and "withdraw" types are enough.
+    return records
+      .filter((record) => {
+        return ["recharge", "withdraw"].includes(record.type);
+      })
+      .map((record) => {
+        return {
+          transaction_hash: record.transaction_hash,
+          capacity:
+            record.type === "withdraw"
+              ? (-BigInt(record.capacity)).toString()
+              : record.capacity,
+          sudt_amount:
+            record.type === "withdraw"
+              ? (-BigInt(record.sudt_amount)).toString()
+              : record.sudt_amount,
+          sudt_token: record.sudt_token,
+          from_addresses: record.from_addresses,
+          to_address: record.to_address,
+        };
+      });
   }
 
   async downloadCsv(accountId: number): Promise<string> {
     const records = await this.getTransactions(accountId);
 
-    const fields: string[] = ["transaction_hash", "capacity", "sudt_amount"];
+    const fields: string[] = [
+      "transaction_hash",
+      "capacity",
+      "sudt_token",
+      "sudt_amount",
+      "from_addresses",
+      "to_address",
+    ];
 
     const json2csv = new Parser({ fields });
     const csv = json2csv.parse(records);

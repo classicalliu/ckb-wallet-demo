@@ -5,6 +5,7 @@ export async function up(knex: Knex): Promise<void> {
     table.increments();
     table.bigInteger("capacity").unsigned().notNullable();
     table.string("sudt_amount").notNullable().defaultTo("");
+    table.string("sudt_token").nullable();
     table.string("type").notNullable();
     table.string("to_address").notNullable();
     table.json("from_addresses").notNullable();

@@ -5,6 +5,7 @@ export interface RecordEntity {
   capacity: string;
   // fee: bigint
   sudt_amount: string;
+  sudt_token?: string;
   type: "recharge" | "withdraw" | "summarize";
   to_address: string;
   from_addresses: string[];
@@ -24,8 +25,20 @@ export class Record {
     const ids: number[] = await this.knex<RecordEntity>("records").insert(
       recordEntity
     );
-    console.log("Record save entity:", ids);
+    console.log("Record entities saved:", ids);
     return ids[0];
+  }
+
+  async saveAll(recordEntities: RecordEntity[]): Promise<number[]> {
+    console.log(
+      "Record save recordEntities:",
+      JSON.stringify(recordEntities, null, 2)
+    );
+    const ids: number[] = await this.knex<RecordEntity>("records").insert(
+      recordEntities
+    );
+    console.log("Record entities saved:", ids);
+    return ids;
   }
 
   async getByAccountId(accountId: number): Promise<RecordEntity[]> {
