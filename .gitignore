@@ -3,4 +3,3 @@ build
 yarn-error.log
 *.sqlite3
 indexer-data
-dev_config.json
