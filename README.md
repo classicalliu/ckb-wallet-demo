@@ -89,11 +89,11 @@ Response example
 
 ```json
 {
-  "id": 11,
-  "blake160": "0xeea7d8a395fc981b249ede798e466a744c4ab2f9",
-  "public_key": "0x027348a64156544c06a98a8b86ef7cb1cbce30df2fc1d3e3e3a19c43e4a72939ca",
+  "id": 1,
+  "blake160": "0xfff9004ac13de84e9b336b782864431bcc18621f",
+  "public_key": "0x03ec0da3a96ee848d957a50904e0dd1ea7921f93d7c30a9d2958f81eb5d4392cec",
   "account_id": 1,
-  "receiving_address": "ckt1qyqwaf7c5w2lexqmyj0du7vwge48gnz2ktusyeq0wu"
+  "receiving_address": "ckt1qyq0l7gqftqnm6zwnvekk7pgv3p3hnqcvg0svjlfgu"
 }
 ```
 
@@ -112,10 +112,10 @@ Response example
 
 ```json
 {
-  "blake160": "0xeb5b99e86004e42a44712320a1e34e518c454e9b",
-  "public_key": "0x02ac1fdcdefdcffa9b1932a4d5ea3babdcb37c6559d31f2dd567a0510c54ef49b1",
+  "blake160": "0xaf304efc8108e4fe41687898e6174b5dd4ecbe87",
+  "public_key": "0x03f6838f7517dae3a4e8a53563f194447092d7448c3463d98646ec0f47c89ce299",
   "account_id": 1,
-  "receiving_address": "ckt1qyqwkkueapsqfep2g3cjxg9pud89rrz9f6ds40nl8n"
+  "receiving_address": "ckt1qyq27vzwljqs3e87g9583x8xza94m48vh6rsl4yyk7"
 }
 ```
 
@@ -186,11 +186,12 @@ Response example
 
 ```json
 {
-  "id": 11,
-  "transaction_hash": "0xc6bcb2acda97d8b6f38a0bd10d21efcc207b2d54a66000c699898fdf11177fb7",
+  "id": 6,
+  "transaction_hash": "0xf386da89f3c293220c91b2fe58d9c2fe3002ea8549bebe18f2f6b0bc5ba0873a",
   "account_id": 1,
   "capacity": "14200000000",
-  "sudt_amount": "100"
+  "sudt_amount": "100",
+  "sudt_token": "0x37b6185306a094b2e5343a6c7d999fd1268912a45088ffa4f8963e642c1cdf4e"
 }
 ```
 
@@ -212,14 +213,36 @@ Response example
 ```json
 [
   {
-    "transaction_hash": "0x29bdbe09cab61ede270367cadc0f802322786237eaf5b133e4717b5ceaee8b19",
-    "capacity": "-10000000000",
-    "sudt_amount": "0"
+    "transaction_hash": "0x5ebe6f073648bfd7e4d7062d9b90332cabf15b8afcc430d4d7cc2d403e591812",
+    "capacity": 100000000000,
+    "sudt_amount": "0",
+    "sudt_token": null,
+    "from_addresses": "ckt1qyqrdsefa43s6m882pcj53m4gdnj4k440axqswmu83",
+    "to_address": "ckt1qyq27vzwljqs3e87g9583x8xza94m48vh6rsl4yyk7"
   },
   {
-    "transaction_hash": "0xf410dc9f03572f794b1df0bccfc269c296ff2bde7f842b742913a7c67fbe0c9e",
-    "capacity": 100000000000,
-    "sudt_amount": "0"
+    "transaction_hash": "0xe0429bcf6d474cdece4a309c45c793f648363f74ed1864f1ac35f964923082e3",
+    "capacity": "-10000000000",
+    "sudt_amount": "0",
+    "sudt_token": null,
+    "from_addresses": "ckt1qyqr2wwdsr6d3262x7rm7hnlslejeypzecyq5dw9cd",
+    "to_address": "ckt1qyqwyxfa75whssgkq9ukkdd30d8c7txct0gqfvmy2v"
+  },
+  {
+    "transaction_hash": "0x236fc475408de2d310832115ac3d16968372d675647aad6365364231c58af9c2",
+    "capacity": 14200000000,
+    "sudt_amount": "100",
+    "sudt_token": "0x1f2615a8dde4e28ca736ff763c2078aff990043f4cbf09eb4b3a58a140a0862d",
+    "from_addresses": "ckt1qyqrdsefa43s6m882pcj53m4gdnj4k440axqswmu83,ckt1qyqrdsefa43s6m882pcj53m4gdnj4k440axqswmu83,ckt1qyqrdsefa43s6m882pcj53m4gdnj4k440axqswmu83",
+    "to_address": "ckt1qyq27vzwljqs3e87g9583x8xza94m48vh6rsl4yyk7"
+  },
+  {
+    "transaction_hash": "0xf386da89f3c293220c91b2fe58d9c2fe3002ea8549bebe18f2f6b0bc5ba0873a",
+    "capacity": "-14200000000",
+    "sudt_amount": "-100",
+    "sudt_token": "0x37b6185306a094b2e5343a6c7d999fd1268912a45088ffa4f8963e642c1cdf4e",
+    "from_addresses": "ckt1qyqr2wwdsr6d3262x7rm7hnlslejeypzecyq5dw9cd",
+    "to_address": "ckt1qyqwyxfa75whssgkq9ukkdd30d8c7txct0gqfvmy2v"
   },
 ]
 ```

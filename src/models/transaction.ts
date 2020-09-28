@@ -31,6 +31,16 @@ const primaryPrivateKey: string = process.env.PRIMARY_PRIVATE_KEY!;
 
 const primaryAddress: string = Address.generateSecpAddress(primaryBlake160);
 
+interface KeyPairInfo {
+  blake160: string;
+  privateKey: string;
+}
+
+const primaryKeyPair: KeyPairInfo = {
+  blake160: primaryBlake160,
+  privateKey: primaryPrivateKey,
+};
+
 export class Transaction {
   private static FEE: bigint = 5000n;
   private knex: Knex;
@@ -87,7 +97,13 @@ export class Transaction {
       tipHeader
     );
 
-    const tx = this.getTx(txSkeleton, privateKey);
+    const tx = this.getTx(txSkeleton, [
+      {
+        blake160: lockScript.args,
+        privateKey,
+      },
+      primaryKeyPair,
+    ]);
 
     const txHash: string = await transactionManager.send_transaction(tx);
 
@@ -131,6 +147,7 @@ export class Transaction {
           to_address: fromAddress,
           from_addresses: inputAddresses,
           transaction_hash: hash,
+          account_id: accountId,
         };
         rechargeEntities.push(entity);
       }
@@ -273,11 +290,18 @@ export class Transaction {
             to_address: address,
             from_addresses: inputAddresses,
             transaction_hash: hash,
+            account_id: accountId,
           };
           rechargeRecords.push(rechargeRecord);
         }
 
-        const tx: TransactionInterface = this.getTx(txSkeleton, privateKey);
+        const tx: TransactionInterface = this.getTx(txSkeleton, [
+          {
+            privateKey,
+            blake160: lockScript.args,
+          },
+          primaryKeyPair,
+        ]);
         const txHash: string = await transactionManager.send_transaction(tx);
 
         summarizeRecords = summarizeRecords.map((record) => {
@@ -420,7 +444,7 @@ export class Transaction {
       );
     }
 
-    const tx = this.getTx(txSkeleton, primaryPrivateKey);
+    const tx = this.getTx(txSkeleton, [primaryKeyPair]);
     const txHash: string = await transactionManager.send_transaction(tx);
 
     const recordEntity: RecordEntity = {
@@ -446,7 +470,10 @@ export class Transaction {
     };
   }
 
-  async getTransactions(accountId: number) {
+  async getTransactions(
+    accountId: number,
+    incomeType: "recharge" | "summarize" = "recharge"
+  ) {
     const recordModel = new Record();
 
     const records = await recordModel.getByAccountId(accountId);
@@ -454,7 +481,7 @@ export class Transaction {
     // "recharge" and "withdraw" types are enough.
     return records
       .filter((record) => {
-        return ["recharge", "withdraw"].includes(record.type);
+        return [incomeType, "withdraw"].includes(record.type);
       })
       .map((record) => {
         return {
@@ -497,7 +524,7 @@ export class Transaction {
     capacity: string;
     sudt_amount: string;
   }> {
-    const records = await this.getTransactions(accountId);
+    const records = await this.getTransactions(accountId, "summarize");
 
     const capacity = records
       .map((record) => BigInt(record.capacity))
@@ -520,14 +547,18 @@ export class Transaction {
 
   private getTx(
     txSkeleton: TransactionSkeletonType,
-    privateKey: string
+    // privateKey: string
+    keyPairs: KeyPairInfo[]
   ): TransactionInterface {
     txSkeleton = common.prepareSigningEntries(txSkeleton);
 
-    const sign = new Sign(privateKey);
     const contents: string[] = txSkeleton
       .get("signingEntries")
       .map((s) => {
+        const input = txSkeleton.get("inputs").get(s.index)!;
+        const lockArgs = input.cell_output.lock.args;
+        const keyPair = keyPairs.find((kp) => kp.blake160 === lockArgs);
+        const sign = new Sign(keyPair!.privateKey);
         return sign.signRecoverable(s.message);
       })
       .toJS();
