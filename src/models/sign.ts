@@ -1,13 +1,14 @@
-import ECPair from "@nervosnetwork/ckb-sdk-utils/lib/ecpair";
+import { HexString } from "@ckb-lumos/base";
+import { key } from "@ckb-lumos/hd";
 
 export class Sign {
-  private keyPair: ECPair;
+  private privateKey: HexString;
 
-  constructor(privateKey: string) {
-    this.keyPair = new ECPair(privateKey);
+  constructor(privateKey: HexString) {
+    this.privateKey = privateKey;
   }
 
-  signRecoverable(message: string): string {
-    return this.keyPair.signRecoverable(message);
+  signRecoverable(message: HexString): HexString {
+    return key.signRecoverable(message, this.privateKey);
   }
 }

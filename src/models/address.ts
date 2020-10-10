@@ -1,5 +1,5 @@
 import { Key } from "./key";
-import { blake160 as Blake160 } from "@nervosnetwork/ckb-sdk-utils";
+import { key } from "@ckb-lumos/hd";
 import { Script } from "@ckb-lumos/base";
 import { generateAddress, parseAddress } from "@ckb-lumos/helpers";
 import { getConfig } from "@ckb-lumos/config-manager";
@@ -37,7 +37,7 @@ export class Address {
    * @param publicKey
    */
   publicKeyToBlake160(publicKey: string): string {
-    return "0x" + Blake160(publicKey, "hex");
+    return key.publicKeyToBlake160(publicKey);
   }
 
   scriptToAddress(script: Script): string {

@@ -1,3 +1,5 @@
+import { HexString } from "@ckb-lumos/base";
+import { key } from "@ckb-lumos/hd";
 import { createECDH } from "crypto";
 
 export interface KeyPair {
@@ -18,10 +20,7 @@ export class Key {
     };
   }
 
-  privateKeyToPublicKey(privateKey: string): string {
-    const ecdb = createECDH("secp256k1");
-    ecdb.setPrivateKey(privateKey.slice(2), "hex");
-
-    return "0x" + ecdb.getPublicKey("hex", "compressed");
+  privateKeyToPublicKey(privateKey: HexString): HexString {
+    return key.privateToPublic(privateKey);
   }
 }
