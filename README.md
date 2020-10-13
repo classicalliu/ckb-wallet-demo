@@ -2,7 +2,7 @@
 
 It's a demo to show how to integrate lumos into a wallet or an exchange project.
 
-It's just a demo, so it don't have account password, and save private key just in plaintext. **Don't imitate this in production**.
+It's just a demo, so it doesn't have account password, and save private key just in plaintext. **Don't imitate this in production**.
 
 It has the following functions.
 
